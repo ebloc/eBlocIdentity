@@ -1,0 +1,23 @@
+{
+  "name": "ebloc-identity-contract",
+  "version": "1.0.0",
+  "homepage": "https://github.com/ebloc/eBlocIdentity/tree/master/contract",
+  "bugs": {
+    "url": "https://github.com/ebloc/eblocIdentity/issues",
+    "email": "berk.erol@boun.edu.tr"
+  },
+  "license": "GPL-3.0-or-later",
+  "author": "Berk Erol <berk.erol@boun.edu.tr> (https://berkerol.github.io/)",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ebloc/eBlocIdentity.git",
+    "directory": "contract"
+  },
+  "dependencies": {
+    "truffle-assertions": "^0.8.2"
+  }
+}

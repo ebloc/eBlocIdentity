@@ -1,0 +1,25 @@
+version: '3'
+
+services:
+  mongodb:
+    image: mongo
+    ports:
+      - 27017:27017
+  ganache:
+    image: trufflesuite/ganache-cli
+    ports:
+      - 8545:8545
+  contract:
+    build: ./contract
+    depends_on:
+      - ganache
+  app:
+    build: ./webapp
+    ports:
+      - 8080:8080
+    depends_on:
+      - mongodb
+      - ganache
+    volumes:
+      - ./webapp:/usr/src/app
+      - /usr/src/app/node_modules
