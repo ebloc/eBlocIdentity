@@ -1,23 +1,21 @@
-const DispatcherStorage = artifacts.require('DispatcherStorage');
-const Dispatcher = artifacts.require('Dispatcher');
+const RootStorage = artifacts.require('RootStorage');
 const Root = artifacts.require('Root');
-const RootImplementation = artifacts.require('RootImplementation');
+const ENSRegistry = artifacts.require('ENSRegistry');
+const Resolver = artifacts.require('Resolver');
 
 module.exports = async (deployer, network, accounts) => {
-  let rootImplementation, dispatcherStorage, dispatcher;
-  await deployer.deploy(RootImplementation).then(instance => {
-    rootImplementation = instance;
+  let resolver, ens, rootStorage;
+  await deployer.deploy(Resolver, { from: accounts[0] }).then(instance => {
+    resolver = instance;
   });
-  await deployer.deploy(DispatcherStorage, [accounts[0]]).then(instance => {
-    dispatcherStorage = instance;
-    dispatcherStorage.upgrade(rootImplementation.address, { from: accounts[0] });
-    Dispatcher.unlinked_binary = Dispatcher.unlinked_binary
-      .replace('1111222233334444555566667777888899990000',
-        dispatcherStorage.address.slice(2));
+  await deployer.deploy(ENSRegistry, accounts[0]).then(instance => {
+    ens = instance;
+    ens.setResolver(web3.utils.fromAscii(''), resolver.address, { from: accounts[0] });
   });
-  await deployer.deploy(Dispatcher).then(instance => {
-    dispatcher = instance;
-    Root.link('RootInterface', dispatcher.address);
+  await deployer.deploy(RootStorage, 2, 5, [accounts[0]]).then(instance => {
+    rootStorage = instance;
   });
-  await deployer.deploy(Root, 2, 5, [accounts[0]]);
+  await deployer.deploy(Root, ens.address, rootStorage.address).then(instance => {
+    resolver.setAddr(web3.utils.fromAscii(''), instance.address, { from: accounts[0] });
+  });
 };
