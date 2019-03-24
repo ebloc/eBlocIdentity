@@ -1,18 +1,317 @@
 <!DOCTYPE html>
 <html lang="en">
 
+<%
+  const contractName = resData.breadcrumb[resData.breadcrumb.length - 1].name;
+  const contractAddress = resData.breadcrumb[resData.breadcrumb.length - 1].address;
+%>
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Home Page</title>
+  <title><%= contractName %></title>
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.2/css/all.css" integrity="sha384-oS3vJWv+0UjzBfQzYUhtDYW+Pj2yciDJxpsK1OYPAYjqT085Qq/1cq5FLXAZQ7Ay" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+  <link rel="stylesheet" href="/stylesheets/validation.css">
+  <style>.breadcrumb-item + .breadcrumb-item::before { font-family: 'FontAwesome'; content: "\f054"; }</style>
+  <script>const contractInstance = window.web3.eth.contract(JSON.parse('<%- abi %>')).at("<%= contractAddress %>");</script>
 </head>
 
 <body>
-  <h1>Home Page</h1>
-  <p><%= message %></p>
-  <p><%= user.address %></p>
-  <p><%= user.email %></p>
-  <p><a href="/signout">Sign out</a></p>
+  <div class="container">
+    <h1 class="mt-3 mb-3"><%= contractName %></h1>
+    <nav>
+      <ol class="breadcrumb">
+        <% for (let i = 0; i < resData.breadcrumb.length - 1; i++) { %>
+          <li class="breadcrumb-item my-auto"><a data-toggle="tooltip" data-placement="bottom" title="<%= resData.breadcrumb[i].address %>" href="<%= '/group/' + resData.breadcrumb[i].address %>"><%= resData.breadcrumb[i].name %></a></li>
+        <% } %>
+        <li class="breadcrumb-item active my-auto"><span data-toggle="tooltip" data-placement="bottom" title="<%= contractAddress %>"><%= contractName %></span></li>
+        <li class="ml-auto my-auto"><%= (resData.isOwner ? 'Owner' : 'Not an owner') + ' of ' + contractName %></li>
+        <li class="ml-2"><a class="btn btn-sm btn-outline-danger" href="/signout">Sign out</a></li>
+      </ol>
+    </nav>
+    <nav>
+      <div class="nav nav-tabs nav-justified">
+        <a class="nav-item nav-link active" data-toggle="tab" href="#nav-subgroups">Subgroups</a>
+        <% if (resData.breadcrumb.length > 1) { %><a class="nav-item nav-link" data-toggle="tab" href="#nav-subgroupRequests">Subgroup Requests</a><% } %>
+        <a class="nav-item nav-link" data-toggle="tab" href="#nav-owners">Owners</a>
+        <a class="nav-item nav-link" data-toggle="tab" href="#nav-members" >Members</a>
+        <% if (resData.breadcrumb.length > 1) { %><a class="nav-item nav-link" data-toggle="tab" href="#nav-memberRequests">Member Requests</a><% } %>
+      </div>
+    </nav>
+    <div class="tab-content">
+      <div class="tab-pane fade show active" id="nav-subgroups">
+        <% if (resData.isOwner) { %>
+          <h3 class="mt-3">Add Subgroup</h3>
+          <form class="form-inline" action="javascript:addSubgroup();">
+            <label for="addSubgroupName">Name</label>
+            <input type="text" class="form-control ml-2 mr-2" id="addSubgroupName" />
+            <label for="addSubgroupOwners">Owners</label>
+            <input type="text" class="form-control ml-2 mr-2" id="addSubgroupOwners" />
+            <button type="submit" class="btn btn-primary">Add</button>
+          </form>
+          <hr/>
+        <% } %>
+        <h3 class="mt-3">Check Subgroup</h3>
+        <div class="row">
+          <div class="col">
+            <form class="form-inline" action="javascript:checkSubgroup();" novalidate>
+              <label for="checkSubgroupName">Name</label>
+              <input type="text" class="form-control ml-2 mr-2" id="checkSubgroupName" required />
+              <button type="submit" class="btn btn-success">Check</button>
+            </form>
+          </div>
+          <div class="col-2">
+            <div class="text-center" id="checkSubgroup"></div>
+          </div>
+        </div>
+        <hr/>
+        <h3 class="mt-3">Subgroups</h3>
+        <% if (resData.subgroups.length === 0) { %>
+          <p>There are no subgroups.</p>
+        <% } else { %>
+          <table class="table table-bordered table-striped">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Address</th>
+                <th>Browse</th>
+                <% if (resData.isOwner) { %><th>Remove</th><% } %>
+              </tr>
+            </thead>
+            <tbody>
+              <% for (let i = 0; i < resData.subgroups.length; i++) { %>
+                <tr>
+                  <td><%= resData.subgroups[i].name %></td>
+                  <td><%= resData.subgroups[i].address %></td>
+                  <td><a href="<%= resData.subgroups[i].url %>"><i class="fas fa-external-link-alt"></i></a></td>
+                  <% if (resData.isOwner) { %><td><a href="javascript:removeSubgroup(<%= resData.subgroups[i].name %>);"><i class="far fa-trash-alt"></i></a></td><% } %>
+                </tr>
+              <% } %>
+            </tbody>
+          </table>
+        <% } %>
+      </div>
+      <% if (resData.breadcrumb.length > 1) { %>
+        <div class="tab-pane fade" id="nav-subgroupRequests">
+          <h3 class="mt-3">Add Subgroup Request</h3>
+          <form class="form-inline" action="javascript:addSubgroupRequest();">
+            <label for="addSubgroupRequestName">Name</label>
+            <input type="text" class="form-control ml-2 mr-2" id="addSubgroupRequestName" />
+            <button type="submit" class="btn btn-primary">Add</button>
+          </form>
+          <hr/>
+          <h3>Check Subgroup Request</h3>
+          <div class="row">
+            <div class="col">
+              <form class="form-inline" action="javascript:if (checkForm('checkSubgroupRequestOwner')) checkSubgroupRequest();" novalidate>
+                <label for="checkSubgroupRequestName">Name</label>
+                <input type="text" class="form-control ml-2 mr-2" id="checkSubgroupRequestName" />
+                <label for="checSubgroupRequestOwner">Owner</label>
+                <input type="text" class="form-control ml-2 mr-2" id="checkSubgroupRequestOwner" required onfocus="checkAddress('checkSubgroupRequestOwner', 'checkSubgroupRequestHelp')" oninput="checkAddress('checkSubgroupRequestOwner', 'checkSubgroupRequestHelp')" />
+                <button type="submit" class="btn btn-success">Check</button>
+              </form>
+            </div>
+            <div class="col-2">
+              <div class="text-center" id="checkSubgroupRequest"></div>
+            </div>
+          </div>
+          <small class="form-text text-danger" id="checkSubgroupRequestHelp"></small>
+          <% if (resData.isOwner) { %>
+            <hr/>
+            <h3>Subgroup Requests</h3>
+            <% if (resData.subgroupRequests.length === 0) { %>
+              <p>There are no subgroup requests.</p>
+            <% } else { %>
+              <table class="table table-bordered table-striped">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Owner</th>
+                    <th>Accept</th>
+                    <th>Reject</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% for (let i = 0; i < resData.subgroupRequests.length; i++) { %>
+                    <tr>
+                      <td><%= resData.subgroupRequests[i].name %></td>
+                      <td><%= resData.subgroupRequests[i].owner %></td>
+                      <td><a href="javascript:acceptSubgroupRequest('<%= resData.subgroupRequests[i].name %>', '<%= resData.subgroupRequests[i].owner %>');"><i class="fas fa-check"></i></a></td>
+                      <td><a href="javascript:removeSubgroupRequest('<%= resData.subgroupRequests[i].name %>', '<%= resData.subgroupRequests[i].owner %>');"><i class="fas fa-times"></i></a></td>
+                    </tr>
+                  <% } %>
+                </tbody>
+              </table>
+            <% } %>
+          <% } %>
+        </div>
+      <% } %>
+      <div class="tab-pane fade" id="nav-owners">
+        <% if (resData.isOwner) { %>
+          <h3 class="mt-3">Add Owner</h3>
+          <form class="form-inline" action="javascript:if (checkForm('addOwnerAddress')) addOwner();" novalidate>
+            <label for="addOwnerAddress">Address</label>
+            <input type="text" class="form-control ml-2 mr-2" id="addOwnerAddress" required onfocus="checkAddress('addOwnerAddress', 'addOwnerHelp')" oninput="checkAddress('addOwnerAddress', 'addOwnerHelp')" />
+            <button type="submit" class="btn btn-primary">Add</button>
+          </form>
+          <small class="form-text text-danger" id="addOwnerHelp"></small>
+          <hr/>
+        <% } %>
+        <h3 class="mt-3">Check Owner</h3>
+        <div class="row">
+          <div class="col">
+            <form class="form-inline" action="javascript:if (checkForm('checkOwnerAddress')) checkOwner();" novalidate>
+              <label for="checkOwnerAddress">Address</label>
+              <input type="text" class="form-control ml-2 mr-2" id="checkOwnerAddress" required onfocus="checkAddress('checkOwnerAddress', 'checkOwnerHelp')" oninput="checkAddress('checkOwnerAddress', 'checkOwnerHelp')" />
+              <button type="submit" class="btn btn-success">Check</button>
+            </form>
+          </div>
+          <div class="col-2">
+            <div class="text-center" id="checkOwner"></div>
+          </div>
+        </div>
+        <small class="form-text text-danger" id="checkOwnerHelp"></small>
+        <% if (resData.isOwner) { %>
+          <hr/>
+          <h3>Owners</h3>
+          <% if (resData.owners.length === 0) { %>
+            <p>There are no owners.</p>
+          <% } else { %>
+            <table class="table table-bordered table-striped">
+              <thead>
+                <tr>
+                  <th>Address</th>
+                  <th>Vote or Withdraw Vote to Remove</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% for (let i = 0; i < resData.owners.length; i++) { %>
+                  <tr>
+                    <td><%= resData.owners[i].address %></td>
+                    <td><% if (!resData.owners[i].isVoted) { %> <a href="javascript:voteToRemoveOwner('<%= resData.owners[i].address %>');"><i class="far fa-trash-alt"></i></a> <% } else { %> <a href="javascript:withdrawVoteToRemoveOwner('<%= resData.owners[i].address %>');"><i class="fas fa-trash-restore-alt"></i></a> <% } %></td>
+                  </tr>
+                <% } %>
+              </tbody>
+            </table>
+          <% } %>
+        <% } %>
+      </div>
+      <div class="tab-pane fade" id="nav-members">
+        <% if (resData.isOwner) { %>
+          <h3 class="mt-3">Add Member</h3>
+          <form class="form-inline" action="javascript:if (checkForm('addMemberAddress')) addMember();" novalidate>
+            <label for="addMemberRole">Role</label>
+            <input type="text" class="form-control ml-2 mr-2" id="addMemberRole" />
+            <label for="addMemberAddress">Address</label>
+            <input type="text" class="form-control ml-2 mr-2" id="addMemberAddress" required onfocus="checkAddress('addMemberAddress', 'addMemberHelp')" oninput="checkAddress('addMemberAddress', 'addMemberHelp')" />
+            <button type="submit" class="btn btn-primary">Add</button>
+          </form>
+          <small class="form-text text-danger" id="addMemberHelp"></small>
+          <hr/>
+        <% } %>
+        <h3 class="mt-3">Check Member</h3>
+        <div class="row">
+          <div class="col">
+            <form class="form-inline" action="javascript:if (checkForm('checkMemberAddress')) checkMember();" novalidate>
+              <label for="checkMemberRole">Role</label>
+              <input type="text" class="form-control ml-2 mr-2" id="checkMemberRole" />
+              <label for="checkMemberAddress">Address</label>
+              <input type="text" class="form-control ml-2 mr-2" id="checkMemberAddress" required onfocus="checkAddress('checkMemberAddress', 'checkMemberHelp')" oninput="checkAddress('checkMemberAddress', 'checkMemberHelp')" />
+              <button type="submit" class="btn btn-success">Check</button>
+            </form>
+          </div>
+          <div class="col-2">
+            <div class="text-center" id="checkMember"></div>
+          </div>
+        </div>
+        <small class="form-text text-danger" id="checkMemberHelp"></small>
+        <hr/>
+        <h3>Members</h3>
+        <% if (resData.members.length === 0) { %>
+          <p>There are no members.</p>
+        <% } else { %>
+          <table class="table table-bordered table-striped">
+            <thead>
+              <tr>
+                <th>Role</th>
+                <th>Address</th>
+                <% if (resData.isOwner) { %><th>Remove</th><% } %>
+              </tr>
+            </thead>
+            <tbody>
+              <% for (let i = 0; i < resData.members.length; i++) { %>
+                <tr>
+                  <td><%= resData.members[i].role %></td>
+                  <td><%= resData.members[i].address %></td>
+                  <% if (resData.isOwner) { %><td><a href="javascript:removeMember('<%= resData.members[i].role %>', '<%= resData.members[i].address %>');"><i class="far fa-trash-alt"></i></a></td><% } %>
+                </tr>
+              <% } %>
+            </tbody>
+          </table>
+        <% } %>
+      </div>
+      <% if (resData.breadcrumb.length > 1) { %>
+        <div class="tab-pane fade" id="nav-memberRequests">
+          <h3 class="mt-3">Add Member Request</h3>
+          <form class="form-inline" action="javascript:addMemberRequest();">
+            <label for="addMemberRequestRole">Role</label>
+            <input type="text" class="form-control ml-2 mr-2" id="addMemberRequestRole" />
+            <button type="submit" class="btn btn-primary">Add</button>
+          </form>
+          <hr/>
+          <h3>Check Member Request</h3>
+          <div class="row">
+            <div class="col">
+              <form class="form-inline" action="javascript:if (checkForm('checkMemberRequestAddress')) checkMemberRequest();" novalidate>
+                <label for="checkMemberRequestRole">Role</label>
+                <input type="text" class="form-control ml-2 mr-2" id="checkMemberRequestRole" />
+                <label for="checkMemberRequestAddress">Address</label>
+                <input type="text" class="form-control ml-2 mr-2" id="checkMemberRequestAddress" required onfocus="checkAddress('checkMemberRequestAddress', 'checkMemberRequestHelp')" oninput="checkAddress('checkMemberRequestAddress', 'checkMemberRequestHelp')" />
+                <button type="submit" class="btn btn-success">Check</button>
+              </form>
+            </div>
+            <div class="col-2">
+              <div class="text-center" id="checkMemberRequest"></div>
+            </div>
+          </div>
+          <small class="form-text text-danger" id="checkMemberRequestHelp"></small>
+          <% if (resData.isOwner) { %>
+            <hr/>
+            <h3>Member Requests</h3>
+            <% if (resData.memberRequests.length === 0) { %>
+              <p>There are no member requests.</p>
+            <% } else { %>
+              <table class="table table-bordered table-striped">
+                <thead>
+                  <tr>
+                    <th>Role</th>
+                    <th>Address</th>
+                    <th>Accept</th>
+                    <th>Reject</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% for (let i = 0; i < resData.memberRequests.length; i++) { %>
+                    <tr>
+                      <td><%= resData.memberRequests[i].role %></td>
+                      <td><%= resData.memberRequests[i].address %></td>
+                      <td><a href="javascript:acceptMemberRequest('<%= resData.memberRequests[i].role %>', '<%= resData.memberRequests[i].address %>');"><i class="fas fa-check"></i></a></td>
+                      <td><a href="javascript:removeMemberRequest('<%= resData.memberRequests[i].role %>', '<%= resData.memberRequests[i].address %>');"><i class="fas fa-times"></i></a></td>
+                    </tr>
+                  <% } %>
+                </tbody>
+              </table>
+            <% } %>
+          <% } %>
+        </div>
+      <% } %>
+    </div>
+  </div>
+  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+  <script src="/javascripts/callContract.js"></script>
 </body>
 
 </html>
